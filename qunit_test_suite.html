@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="iso-8859-1">
+  <title>QUnit applicato a codice Javascript e jQuery</title>
+  
+  <link rel="stylesheet" href="http://code.jquery.com/qunit/qunit-1.11.0.css">
+  
+</head>
+<body>
+  <div id="qunit" style="width: 700px;"></div>
+	<div id="qunit-fixture">
+  
+		<!-- 
+				Codice HTML di supporto al test 
+		-->  
+				Under Text Element : <input type="text" id="elemento_di_testo_su_cui_agisce_l_utente"/>
+				Error Image Element : <img id="immagine_di_errore_vista_dall_utente" class="image_tag_contains_this_class_when_error_free"/> 
+				
+				Provincia Element : <input type="text" id="campo_di_testo_provincia_riempito_con_ajax"/>
+				Cap Element : <input type="text" id="campo_di_testo_cap_riempito_con_ajax"/>	
+	</div>
+
+	<script type="text/javascript" src="http://code.jquery.com/qunit/qunit-1.11.0.js"/></script>
+	<script type="text/javascript" src="http://code.jquery.com/jquery-1.8.3.min.js"/></script>
+
+	<script src="./resources/jquery.mockjax.js"></script>
+ 
+	<!-- 
+			Codice JS di supporto al test 
+	-->
+	<script type="text/javascript">
+
+		/**
+		 * A seconda del booleano error controlla che l'elemento di testo e l'immagine 
+		 * contengano o meno le condizioni di errore in maniera coerente. 
+		 *
+		 *	campo di testo 	-> è in condizione di errore quando contiene la CSS styleTextError
+		 *  immagine 		-> è in condizione di errore quando NON contiene la CSS styleImgError
+		 *
+		 * imageElement può essere null oppure stringa vuota e non viene eseguito nessun check su di esso.
+		 */
+		function checkError( textElement, imageElement, styleTextError, styleImgError, error ) {
+		
+			var textCss = textElement.className;
+			var imgCss;
+			
+			if ( imageElement != null )
+				imgCss = imageElement.className;
+		
+			if ( error ) 
+			{ // presenza di errore
+				ok( textCss.contains(styleTextError), "Il campo di testo è in condizione di errore.");
+				
+				if ( imageElement != null )
+					ok( !imgCss.contains(styleImgError), "L'immagine è in condizione di errore.");			
+			} else 
+			{ // assenza di errore
+				ok( !textCss.contains(styleTextError), "Il campo di testo NON è in condizione di errore.");	
+				
+				if ( imageElement != null )
+					ok( imgCss.contains(styleImgError), "L'immagine NON è in condizione di errore.");		
+			}
+		}
+		
+		/**
+		 * Funzione che simula il metodo contains sulle stringhe
+		 */
+		String.prototype.contains = function(subString) {
+			
+			var indexOf = this.indexOf(subString);
+			
+			return indexOf != -1 ? true : false;
+		}
+		
+		/**
+		 * Funzione conta in numero di occorrenze di una data sotto-stringa
+		 */		
+		String.prototype.occurrences = function(subString) {
+			
+			var regEx = new RegExp( subString, "g");
+			
+			var result;
+			var	indices = [];
+			
+			while ( (result = regEx.exec(this)) ) 
+				indices.push(result.index);		
+
+			return indices.length;
+		}
+
+	</script>
+  
+	<!-- 
+			Codice sotto test 
+	-->
+	<script src="./code_under_test/under_test.js"></script> 
+  
+	<!-- 
+			Test case automatici 
+	-->	
+	<script type="text/javascript">
+
+		var styleTextError = "input_text_tag_contains_this_class_when_error";
+		var styleImgError  = "image_tag_contains_this_class_when_error_free";
+
+		var textElementId = "elemento_di_testo_su_cui_agisce_l_utente";
+		var imageErrorId = "immagine_di_errore_vista_dall_utente";
+
+		var textElement;
+		var imagElement;
+
+		/** 
+		 *	Primo modulo
+		 */
+		
+		module( "Validatori campi di testo", {
+
+			setup : function() {
+			
+				textElement = document.getElementById(textElementId);
+				imagElement = document.getElementById(imageErrorId);		
+			},
+
+			teardown : function() {
+				
+				// reset under test element
+				textElement.value = "";
+				
+				// reset CSS for text in without error condition
+				textElement.className = "";
+				
+				// reset CSS for image in without error condition
+				imagElement.className = styleImgError;
+			}
+		});
+
+		// 1
+		test( "validaNomeCognome : valore testo corretto", function() {
+			expect( 2 );
+
+			textElement.value="Vincenzo";
+
+			/**
+			 * Codice sotto test
+			 */
+			validaNomeCognome( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			checkError( textElement, imagElement, styleTextError, styleImgError, false );
+		});
+
+		// 2
+		test( "validaNomeCognome : valore testo incorretto", function() {
+			expect( 2 );
+
+			textElement.value="Vince1nzo";
+
+			/**
+			 * Codice sotto test
+			 */	
+			validaNomeCognome( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			checkError( textElement, imagElement, styleTextError, styleImgError, true );
+		});
+
+		// 3
+		test( "validaCodiceFiscale : valore testo corretto", function() {
+			expect( 2 );
+
+			textElement.value="JCKMHL58M29D086Y";
+
+			/**
+			 * Codice sotto test
+			 */	
+			validaCodiceFiscale( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			checkError( textElement, imagElement, styleTextError, styleImgError, false );
+		});
+
+		// 4
+		test( "validaCodiceFiscale : valore testo incorretto", function() {
+			expect( 2 );
+
+			textElement.value="JCKMHL58086Y";
+
+			/**
+			 * Codice sotto test
+			 */	
+			validaCodiceFiscale( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			checkError( textElement, imagElement, styleTextError, styleImgError, true );
+		});
+
+		// 5
+		test( "validaCap : valore testo corretto", function() {
+			expect( 1 );
+
+			textElement.value="80040";
+
+			/**
+			 * Codice sotto test
+			 */	
+			validaCap( textElement, styleTextError);
+			
+			checkError( textElement, null, styleTextError, null, false );
+		});
+
+		// 6
+		test( "validaCap : valore testo incorretto", function() {
+			expect( 1 );
+
+			textElement.value="AAAA";
+
+			/**
+			 * Codice sotto test
+			 */	
+			validaCap( textElement, styleTextError);
+			
+			checkError( textElement, null, styleTextError, null, true );
+		});	
+
+		// 7
+		test( "validaEmail : valore testo corretto", function() {
+			expect( 2 );
+
+			textElement.value="questaBellaMail@inesistente.it";
+
+			/**
+			 * Codice sotto test
+			 */	
+			validaEmail( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			checkError( textElement, imagElement, styleTextError, styleImgError, false );
+		});
+
+		// 8
+		test( "validaEmail : valore testo incorretto 1 ", function() {
+			expect( 2 );
+
+			textElement.value="questaMailNonEsiste@bellait";
+
+			/**
+			 * Codice sotto test
+			 */	
+			validaEmail( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			checkError( textElement, imagElement, styleTextError, styleImgError, true );
+		});	
+
+		// 9
+		test( "validaEmail : valore testo incorretto 2 ", function() {
+			expect( 2 );
+
+			textElement.value="questaMailNonEsistebella.it";
+
+			/**
+			 * Codice sotto test
+			 */	
+			validaEmail( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			checkError( textElement, imagElement, styleTextError, styleImgError, true );
+		});	
+
+		// 10
+		test( "validaTelefono : valore testo corretto", function() {
+			expect( 2 );
+
+			textElement.value="3458965411";
+
+			/**
+			 * Codice sotto test
+			 */	
+			validaTelefono( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			checkError( textElement, imagElement, styleTextError, styleImgError, false );
+		});
+
+		// 11
+		test( "validaTelefono : valore testo incorretto", function() {
+			expect( 2 );
+
+			textElement.value="3458DF5411";
+
+			/**
+			 * Codice sotto test
+			 */	
+			validaTelefono( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			checkError( textElement, imagElement, styleTextError, styleImgError, true );
+		});
+
+		/** 
+		 *	Secondo modulo
+		 */	
+		
+		module( "Gestione dei tag a basso livello", {
+
+			setup : function() {
+			
+				textElement = document.getElementById(textElementId);
+				imagElement = document.getElementById(imageErrorId);		
+			},
+
+			teardown : function() {
+				
+				// reset under test element
+				textElement.value = "";
+				
+				// reset CSS for text in without error condition
+				textElement.className = "";
+				
+				// reset CSS for image in without error condition
+				imagElement.className = styleImgError;
+			}
+		});		
+		
+		// 12
+		test( 'Consistenza campo "class" dopo una serie di correzioni', function() {
+			expect( 4 );
+			
+			// primo errore
+			textElement.value="Vince1nzo";
+			validaNomeCognome( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			// prima correzione
+			textElement.value="Vincenzo";
+			validaNomeCognome( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			// seconda correzione
+			textElement.value="Riccardo";
+			validaNomeCognome( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			// qui mi aspetto che :
+			// il campo class del tag input contenga nessuna occorenza dello stile di errore
+			// il campo class del tag img contenga una occorrenza dello stile di errore	
+			
+			equal( 	textElement.className.occurrences(styleTextError), 
+					0, 
+					'Attributo class del tag input contiene nessuna occorrenza della classe di errore.' );
+					
+			equal( 	imagElement.className.occurrences(styleImgError), 
+					1, 
+					'Attributo class del tag img contiene una occorrenza della classe di errore.' );	
+			
+			// secondo errore
+			textElement.value="Ricc2ardo";
+			validaNomeCognome( textElement, imageErrorId, styleTextError, styleImgError);
+			
+			// terzo errore
+			textElement.value="Ricc3ardo";
+			validaNomeCognome( textElement, imageErrorId, styleTextError, styleImgError);	
+			
+			// qui mi aspetto che :
+			// il campo class del tag input contenga una occorenza dello stile di errore
+			// il campo class del tag img non contenga occorrenze dello stile di errore
+			equal( 	textElement.className.occurrences(styleTextError), 
+					1, 
+					'Attributo class del tag input contiene una occorrenza della classe di errore.' );
+					
+			equal( 	imagElement.className.occurrences(styleImgError), 
+					0, 
+					'Attributo class del tag img contiene nessuna occorrenza della classe di errore.' );	
+			
+		});
+		
+		/** 
+		 *	Terzo modulo
+		 */	
+		var idElemProvincia = "campo_di_testo_provincia_riempito_con_ajax";
+		var idElemCap = "campo_di_testo_cap_riempito_con_ajax";
+		 
+		var ajaxURL = "/my/funny/server";
+		
+		var proElement;
+		var capElement;
+				
+		module( "Gestione messaggi Ajax", {
+
+			setup : function() {
+				
+				// questo campo viene utilizzato come se fosse il comune
+				textElement = document.getElementById(textElementId);
+				imagElement = document.getElementById(imageErrorId);		
+				
+				proElement = document.getElementById(idElemProvincia);
+				capElement = document.getElementById(idElemCap);	
+
+				$.mockjaxClear();
+			},
+
+			teardown : function() {
+				
+				// reset under test element
+				textElement.value = "";
+				proElement.value = "";
+				capElement.value = "";
+				
+				// reset CSS for text in without error condition
+				textElement.className = "";
+				
+				// reset CSS for image in without error condition
+				imagElement.className = styleImgError;
+				
+				$.mockjaxClear();
+			}
+		});
+
+		// 13
+		test( "getProvCap : corretta esecuzione", function() {
+			expect( 4 );			
+
+				/**
+				 * Il nostro server Ajax che risponde alla richiesta del codice sotto test
+				 */
+				$.mockjax({
+					type: 'POST',
+					url: ajaxURL,
+					contentType:  'text/xml',
+					responseTime: 1,
+					responseXML: '<XML><PROVINCIA>NAPOLI</PROVINCIA><CAP>80011</CAP></XML>'
+				});	
+
+				/**
+				 * Con questo comando di monitora l'evento asincrono della risposta eseguendo :
+				 * 1. le asserzioni richieste dalla verifica
+				 * 2. si riprende l'esecuzione dello script principale
+				 */
+				$.ajaxSetup({
+				
+					beforeSend : function( xhr, settings ) {
+						
+						var  ans = this.data.split("&");
+						
+						// Bisogna trovare un modo fare il parsing di XML in js
+						
+//<xml><idRequest>GetProvinciaCap</idRequest><comune>ACERRA</comune></xml>
+//%3Cxml%3E%3CidRequest%3EGetProvinciaCap%3C%2FidRequest%3E%3Ccomune%3EACERRA%3C%2Fcomune%3E%3C%2Fxml%3E
+						
+						var xmlRequestParsing = ans[0].contains("ACERRA");
+						
+						ok( xmlRequestParsing, "La richiesta Ajax formattata correttamente.");
+					},
+				
+					complete : function() {
+					
+							ok( true, "Lo scambio di messaggi Ajax è avvenuto.");
+							
+							equal( proElement.value, "NAPOLI", "Verifica che la Provincia sia inserita nel campo richiesto.");
+							equal( capElement.value, "80011", "Verifica che il CAP sia inserito nel campo richiesto.");									
+							
+							start();
+					} 
+				});				
+				
+				// L'utente inserisce un comune del campo di testo
+				textElement.value="ACERRA";
+				//textElement.value="LODI";
+
+				/**
+				 * Codice sotto test
+				 */
+				getProvCap( ajaxURL, textElement, idElemProvincia, idElemCap);
+				
+				/**
+				 * Si ferma l'esecuzione dello script principale in attesa dell'evento asincrono
+				 */
+				stop();
+				
+		});		
+
+	</script>
+
+</body>
+</html>
